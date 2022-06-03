@@ -1,0 +1,31 @@
+[
+  {
+    "id": "3a694e9f-54ee-430b-9cda-01fb941e6f81",
+    "ip": "127.0.0.1",
+    "project": {
+      "id": "9b5e9dd9-d1d0-4d83-aeed-37ca8403ad12",
+      "name": "Example Project",
+      "environment": "development",
+      "variables": [
+        {
+          "key": {
+            "key": "NODE_ENV",
+            "info": "Specifically is used (by convention) to state whether a particular environment is a production or a development."
+          },
+          "value": "development",
+          "project": "9b5e9dd9-d1d0-4d83-aeed-37ca8403ad12"
+        },
+        {
+          "key": {
+            "key": "NODE_CLUSTER",
+            "info": "Run multiple instances of Node.js to distribute workloads among their application threads. \nAccept 0 or 1 as value."
+          },
+          "value": "0",
+          "project": "9b5e9dd9-d1d0-4d83-aeed-37ca8403ad12"
+        }
+      ]
+    },
+    "static_token": "ownMWWa525DduE0cIPWOLQJ3RwY0Fhk2MGDUUvACEWrCW4ZacAAKWrfkJM6j23pz",
+    "overrides": []
+  }
+]
