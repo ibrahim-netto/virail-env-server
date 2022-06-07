@@ -352,6 +352,18 @@ async function createServersCollection(serversCollectionName) {
                 has_auto_increment: false
             }
         }, {
+            field: 'name',
+            type: 'string',
+            schema: {},
+            meta: {
+                interface: 'input',
+                special: null,
+                required: true,
+                options: {
+                    trim: true
+                }
+            }
+        }, {
             field: 'ip',
             type: 'string',
             schema: {},

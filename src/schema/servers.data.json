@@ -1,6 +1,7 @@
 [
   {
     "id": "3a694e9f-54ee-430b-9cda-01fb941e6f81",
+    "name": "Example Server",
     "ip": "127.0.0.1",
     "project": {
       "id": "9b5e9dd9-d1d0-4d83-aeed-37ca8403ad12",
