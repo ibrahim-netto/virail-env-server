@@ -23,7 +23,7 @@ module.exports.getEnv = async (req, res, next) => {
                 With IP based authentication, it's not possible to get the IP if it's behind a proxy because
                 it opens a security flaw where the IP could be spoofed on the x-forwarded-for HTTP header.
             */
-            const ip = req.connection.remoteAddress;
+            const ip = req.ip;
             filter.ip = { _eq: ip }
         }
 

@@ -32,9 +32,19 @@ const { EXPRESS_PORT } = require('./src/constants');
 
     app.use(expressWinston.logger({
         winstonInstance: logger,
-        meta: false,
         expressFormat: true,
-        colorize: true
+        colorize: true,
+        meta: true,
+        metaField: null,
+        dynamicMeta: (req) => {
+            const meta = {};
+
+            if (req) {
+                meta.ip = req.ip
+            }
+
+            return meta;
+        }
     }));
 
     if (process.env.SENTRY_DSN) {
