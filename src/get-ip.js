@@ -33,7 +33,12 @@ const ranges = {
 };
 
 module.exports = (req) => {
-    const ip = req.ip;
+    /*
+        ::ffff: is a subnet prefix for IPv4 (32 bit) addresses that are placed inside an IPv6 (128 bit) space.
+     */
+    const ip = (req.ip.substr(0, 7) === '::ffff:') ?
+        req.ip.substr(7) :
+        req.ip
 
     if (!req.headers['cf-connecting-ip']) {
         return ip;
