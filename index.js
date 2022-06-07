@@ -15,6 +15,7 @@ const setStaticToken = require('./src/set-static-token');
 const applySchema = require('./src/schema/schema');
 const controller = require('./src/controller');
 const errorHandler = require('./src/error-handler');
+const getIp = require('./src/get-ip');
 
 const { EXPRESS_PORT } = require('./src/constants');
 
@@ -40,7 +41,7 @@ const { EXPRESS_PORT } = require('./src/constants');
             const meta = {};
 
             if (req) {
-                meta.ip = req.ip
+                meta.ip = getIp(req);
             }
 
             return meta;

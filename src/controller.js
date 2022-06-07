@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const directus = require('./directus');
+const getIp = require('./get-ip');
 
 const { SERVERS_COLLECTION } = require('./constants');
 
@@ -23,7 +24,7 @@ module.exports.getEnv = async (req, res, next) => {
                 With IP based authentication, it's not possible to get the IP if it's behind a proxy because
                 it opens a security flaw where the IP could be spoofed on the x-forwarded-for HTTP header.
             */
-            const ip = req.ip;
+            const ip = getIp(req);
             filter.ip = { _eq: ip }
         }
 
