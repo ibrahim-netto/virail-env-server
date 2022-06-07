@@ -62,7 +62,7 @@ module.exports.getEnv = async (req, res, next) => {
             { key: 'STATIC_TOKEN', value: server.static_token || '' }
         ], 'key');
 
-        const env = variables?.reduce((acc, entry) => acc += `${entry.key}=${entry.value}\n`, '');
+        const env = variables?.reduce((acc, entry) => acc += `${entry.key}="${entry.value}"\n`, '');
         res.type('text/plain').send(env);
     } catch (err) {
         next(err);
