@@ -1,10 +1,9 @@
 [
   {
-    "id": "3a694e9f-54ee-430b-9cda-01fb941e6f81",
     "name": "Example Server",
     "ip": "127.0.0.1",
     "project": {
-      "id": "9b5e9dd9-d1d0-4d83-aeed-37ca8403ad12",
+      "id": 1,
       "name": "Example Project",
       "environment": "development",
       "variables": [
@@ -14,7 +13,7 @@
             "info": "Specifically is used (by convention) to state whether a particular environment is a production or a development."
           },
           "value": "development",
-          "project": "9b5e9dd9-d1d0-4d83-aeed-37ca8403ad12"
+          "project": 1
         },
         {
           "key": {
@@ -22,7 +21,7 @@
             "info": "Run multiple instances of Node.js to distribute workloads among their application threads. \nAccept 0 or 1 as value."
           },
           "value": "0",
-          "project": "9b5e9dd9-d1d0-4d83-aeed-37ca8403ad12"
+          "project": 1
         }
       ]
     },

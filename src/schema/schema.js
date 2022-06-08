@@ -51,6 +51,24 @@ module.exports = async () => {
     await setServersCollectionOverridesFieldRelation(SERVERS_COLLECTION, OVERRIDES_COLLECTION);
 
     /*
+        Set user_created && user_updated relations
+     */
+    const collections = [
+        KEYS_COLLECTION,
+        VARIABLES_COLLECTION,
+        OVERRIDES_COLLECTION,
+        PROJECTS_COLLECTION,
+        SERVERS_COLLECTION
+    ];
+
+    for (const collection of collections) {
+        await Promise.all([
+            setCollectionUserCreatedFieldRelation(collection),
+            setCollectionUserUpdatedFieldRelation(collection)
+        ]);
+    }
+
+    /*
         Load example data
     */
     logger.info(`Importing example data...`);
@@ -98,6 +116,70 @@ async function setProjectSettings() {
     return directus.settings.update(settings);
 }
 
+function getMetadataFields() {
+    return [{
+        field: 'user_created',
+        type: 'uuid',
+        meta: {
+            special: ['user-created'],
+            interface: 'select-dropdown-m2o',
+            options: {
+                template: '{{avatar.$thumbnail}} {{first_name}} {{last_name}}'
+            },
+            display: 'user',
+            readonly: true,
+            hidden: false,
+            width: 'half'
+        },
+        schema: {}
+    }, {
+        field: 'date_created',
+        type: 'timestamp',
+        meta: {
+            special: ['date-created'],
+            interface: 'datetime',
+            readonly: true,
+            hidden: false,
+            width: 'half',
+            display: 'datetime',
+            display_options: {
+                relative: true
+            }
+        },
+        schema: {}
+    }, {
+        field: 'user_updated',
+        type: 'uuid',
+        meta: {
+            special: ['user-updated'],
+            interface: 'select-dropdown-m2o',
+            options: {
+                template: '{{avatar.$thumbnail}} {{first_name}} {{last_name}}'
+            },
+            display: 'user',
+            readonly: true,
+            hidden: false,
+            width: 'half'
+        },
+        schema: {}
+    }, {
+        field: 'date_updated',
+        type: 'timestamp',
+        meta: {
+            special: ['date-updated'],
+            interface: 'datetime',
+            readonly: true,
+            hidden: false,
+            width: 'half',
+            display: 'datetime',
+            display_options: {
+                relative: true
+            }
+        },
+        schema: {}
+    }]
+}
+
 async function createKeysCollection(keysCollectionName) {
     const collection = {
         collection: keysCollectionName,
@@ -129,7 +211,9 @@ async function createKeysCollection(keysCollectionName) {
                     trim: true
                 }
             }
-        }],
+        },
+            ...getMetadataFields()
+        ],
         schema: {},
         meta: {
             singleton: false
@@ -144,17 +228,17 @@ async function createVariablesCollection(variablesCollectionName) {
         collection: variablesCollectionName,
         fields: [{
             field: 'id',
-            type: 'uuid',
+            type: 'integer',
             meta: {
                 hidden: true,
                 readonly: true,
                 interface: 'input',
-                special: ['uuid']
+                special: null,
+                required: true
             },
             schema: {
                 is_primary_key: true,
-                length: 36,
-                has_auto_increment: false
+                has_auto_increment: true
             }
         }, {
             field: 'key',
@@ -182,7 +266,7 @@ async function createVariablesCollection(variablesCollectionName) {
             }
         }, {
             field: 'project',
-            type: 'uuid',
+            type: 'integer',
             schema: {},
             meta: {
                 interface: 'select-dropdown-m2o',
@@ -192,7 +276,9 @@ async function createVariablesCollection(variablesCollectionName) {
                     template: '{{name}} - {{environment}}'
                 }
             }
-        }],
+        },
+            ...getMetadataFields()
+        ],
         schema: {},
         meta: {
             hidden: true,
@@ -208,17 +294,17 @@ async function createOverridesCollection(overridesCollectionName) {
         collection: overridesCollectionName,
         fields: [{
             field: 'id',
-            type: 'uuid',
+            type: 'integer',
             meta: {
                 hidden: true,
                 readonly: true,
                 interface: 'input',
-                special: ['uuid']
+                special: null,
+                required: true
             },
             schema: {
                 is_primary_key: true,
-                length: 36,
-                has_auto_increment: false
+                has_auto_increment: true
             }
         }, {
             field: 'key',
@@ -246,7 +332,7 @@ async function createOverridesCollection(overridesCollectionName) {
             }
         }, {
             field: 'server',
-            type: 'uuid',
+            type: 'integer',
             schema: {},
             meta: {
                 interface: 'select-dropdown-m2o',
@@ -256,7 +342,9 @@ async function createOverridesCollection(overridesCollectionName) {
                     template: '{{ip}}'
                 }
             }
-        }],
+        },
+            ...getMetadataFields()
+        ],
         schema: {},
         meta: {
             hidden: true,
@@ -272,17 +360,17 @@ async function createProjectsCollection(projectsCollectionName) {
         collection: projectsCollectionName,
         fields: [{
             field: 'id',
-            type: 'uuid',
+            type: 'integer',
             meta: {
                 hidden: true,
                 readonly: true,
                 interface: 'input',
-                special: ['uuid']
+                special: null,
+                required: true
             },
             schema: {
                 is_primary_key: true,
-                length: 36,
-                has_auto_increment: false
+                has_auto_increment: true
             }
         }, {
             field: 'name',
@@ -326,7 +414,9 @@ async function createProjectsCollection(projectsCollectionName) {
                     enableSelect: false
                 }
             }
-        }],
+        },
+            ...getMetadataFields()
+        ],
         schema: {},
         meta: { singleton: false }
     };
@@ -339,17 +429,17 @@ async function createServersCollection(serversCollectionName) {
         collection: serversCollectionName,
         fields: [{
             field: 'id',
-            type: 'uuid',
+            type: 'integer',
             meta: {
                 hidden: true,
                 readonly: true,
                 interface: 'input',
-                special: ['uuid']
+                special: null,
+                required: true
             },
             schema: {
                 is_primary_key: true,
-                length: 36,
-                has_auto_increment: false
+                has_auto_increment: true
             }
         }, {
             field: 'name',
@@ -366,7 +456,9 @@ async function createServersCollection(serversCollectionName) {
         }, {
             field: 'ip',
             type: 'string',
-            schema: {},
+            schema: {
+                is_unique: true
+            },
             meta: {
                 interface: 'input',
                 special: null,
@@ -377,7 +469,7 @@ async function createServersCollection(serversCollectionName) {
             }
         }, {
             field: 'project',
-            type: 'uuid',
+            type: 'integer',
             schema: {},
             meta: {
                 interface: 'select-dropdown-m2o',
@@ -422,7 +514,9 @@ async function createServersCollection(serversCollectionName) {
                 },
                 validation_message: 'static_token.length < 64'
             }
-        }],
+        },
+            ...getMetadataFields()
+        ],
         schema: {},
         meta: { singleton: false }
     };
@@ -570,5 +664,45 @@ async function setServersCollectionOverridesFieldRelation(serversCollectionName,
         method: 'PATCH',
         headers,
         body: JSON.stringify(relation),
-    }).then(response => response.json())
+    }).then(response => response.json());
+}
+
+function setCollectionUserCreatedFieldRelation(collection) {
+    const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${directus.auth.token}`
+    };
+
+    const relation = {
+        collection: collection,
+        field: 'user_created',
+        related_collection: 'directus_users',
+        schema: {}
+    };
+
+    return fetch(`${process.env.EXPRESS_DIRECTUS_API_URL}/relations`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(relation),
+    }).then(response => response.json());
+}
+
+function setCollectionUserUpdatedFieldRelation(collection) {
+    const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${directus.auth.token}`
+    };
+
+    const relation = {
+        collection: collection,
+        field: 'user_updated',
+        related_collection: 'directus_users',
+        schema: {}
+    };
+
+    return fetch(`${process.env.EXPRESS_DIRECTUS_API_URL}/relations`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(relation),
+    }).then(response => response.json());
 }
