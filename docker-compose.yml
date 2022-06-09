@@ -15,8 +15,6 @@ services:
       options:
         max-size: ${DOCKER_LOG_MAX_SIZE}
         max-file: ${DOCKER_LOG_MAX_FILE}
-    ports:
-      - "5432:5432"
 
   directus:
     container_name: virail-env-server.directus

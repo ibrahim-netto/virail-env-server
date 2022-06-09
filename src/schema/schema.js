@@ -8,7 +8,6 @@ const logger = require('../logger');
 const serversData = require('./servers.data.json');
 
 const {
-    EXPRESS_PORT,
     KEYS_COLLECTION,
     VARIABLES_COLLECTION,
     OVERRIDES_COLLECTION,
@@ -41,30 +40,29 @@ module.exports = async () => {
     await createOverridesCollection(OVERRIDES_COLLECTION);
     await createProjectsCollection(PROJECTS_COLLECTION);
     await createServersCollection(SERVERS_COLLECTION);
-    await setVariablesCollectionKeyFieldRelation(VARIABLES_COLLECTION, KEYS_COLLECTION);
-    await setVariablesCollectionProjectFieldRelation(VARIABLES_COLLECTION, PROJECTS_COLLECTION);
-    await setOverridesCollectionKeyFieldRelation(OVERRIDES_COLLECTION, KEYS_COLLECTION);
-    await setOverridesCollectionServersFieldRelation(OVERRIDES_COLLECTION, SERVERS_COLLECTION);
-    await setProjectsCollectionVariablesFieldRelation(PROJECTS_COLLECTION, VARIABLES_COLLECTION);
-    await setServersCollectionProjectFieldRelation(SERVERS_COLLECTION, PROJECTS_COLLECTION);
-    await setServersCollectionOverridesFieldRelation(SERVERS_COLLECTION, OVERRIDES_COLLECTION);
+
+    await Promise.all([
+        setVariablesCollectionKeyFieldRelation(VARIABLES_COLLECTION, KEYS_COLLECTION),
+        setVariablesCollectionProjectFieldRelation(VARIABLES_COLLECTION, PROJECTS_COLLECTION),
+        setOverridesCollectionKeyFieldRelation(OVERRIDES_COLLECTION, KEYS_COLLECTION),
+        setOverridesCollectionServersFieldRelation(OVERRIDES_COLLECTION, SERVERS_COLLECTION),
+        setProjectsCollectionVariablesFieldRelation(PROJECTS_COLLECTION, VARIABLES_COLLECTION),
+        setServersCollectionProjectFieldRelation(SERVERS_COLLECTION, PROJECTS_COLLECTION),
+        setServersCollectionOverridesFieldRelation(SERVERS_COLLECTION, OVERRIDES_COLLECTION)
+    ]);
 
     /*
         Apply collection columns order
      */
     const userId = await directus.users.me.read().then(user => user.id);
-
-    await setCollectionLayoutColumnsOrder(KEYS_COLLECTION, ['key', 'info'], userId);
-    await setCollectionLayoutColumnsOrder(VARIABLES_COLLECTION, ['key', 'value', 'project'], userId);
-    await setCollectionLayoutColumnsOrder(OVERRIDES_COLLECTION, ['key', 'value', 'server'], userId);
-    await setCollectionLayoutColumnsOrder(PROJECTS_COLLECTION, ['name', 'environment', 'variables'], userId);
-    await setCollectionLayoutColumnsOrder(SERVERS_COLLECTION, ['name', 'ip', 'project', 'overrides'], userId);
-
-    /*
-        Create webhooks
-     */
-    await createNewUserWebhook(`http://localhost:${EXPRESS_PORT}/hooks/new-user`); // apply setCollectionLayoutColumnsOrder to new users
-
+    await Promise.all([
+        setCollectionLayoutColumnsOrder(KEYS_COLLECTION, ['key', 'info'], userId),
+        setCollectionLayoutColumnsOrder(VARIABLES_COLLECTION, ['key', 'value', 'project'], userId),
+        setCollectionLayoutColumnsOrder(OVERRIDES_COLLECTION, ['key', 'value', 'server'], userId),
+        setCollectionLayoutColumnsOrder(PROJECTS_COLLECTION, ['name', 'environment', 'variables'], userId),
+        setCollectionLayoutColumnsOrder(SERVERS_COLLECTION, ['name', 'ip', 'project', 'overrides'], userId)
+    ]);
+    
     /*
         Set user_created && user_updated relations
      */
@@ -86,8 +84,10 @@ module.exports = async () => {
     /*
         Add compound constraints
     */
-    await addCollectionCompoundUniqueKeyConstraint(postgreClient, VARIABLES_COLLECTION, 'key', 'project');
-    await addCollectionCompoundUniqueKeyConstraint(postgreClient, PROJECTS_COLLECTION, 'name', 'environment');
+    await Promise.all([
+        addCollectionCompoundUniqueKeyConstraint(postgreClient, VARIABLES_COLLECTION, 'key', 'project'),
+        addCollectionCompoundUniqueKeyConstraint(postgreClient, PROJECTS_COLLECTION, 'name', 'environment')
+    ]);
 
     /*
         Load example data
