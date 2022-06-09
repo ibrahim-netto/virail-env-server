@@ -6,7 +6,8 @@ const pg = require('pg');
  */
 
 const postgreClient = new pg.Client({
-    host: process.env.DIRECTUS_DB_HOST,
+    // host: process.env.DIRECTUS_DB_HOST,
+    host: 'localhost',
     port: process.env.DIRECTUS_DB_PORT,
     user: process.env.DIRECTUS_DB_USER,
     password: process.env.DIRECTUS_DB_PASSWORD,

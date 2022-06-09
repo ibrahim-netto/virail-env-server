@@ -8,6 +8,7 @@ const logger = require('../logger');
 const serversData = require('./servers.data.json');
 
 const {
+    EXPRESS_PORT,
     KEYS_COLLECTION,
     VARIABLES_COLLECTION,
     OVERRIDES_COLLECTION,
@@ -16,10 +17,6 @@ const {
 } = require('../constants');
 
 module.exports = async () => {
-    /*
-        @TODO Apply collection columns order (how to add global preset?)
-     */
-
     /*
         Skip if collection KEYS_COLLECTION exists
      */
@@ -55,11 +52,18 @@ module.exports = async () => {
     /*
         Apply collection columns order
      */
-    await setCollectionLayoutColumnsOrder(KEYS_COLLECTION, ['key', 'info']);
-    await setCollectionLayoutColumnsOrder(VARIABLES_COLLECTION, ['key', 'value', 'project']);
-    await setCollectionLayoutColumnsOrder(OVERRIDES_COLLECTION, ['key', 'value', 'server']);
-    await setCollectionLayoutColumnsOrder(PROJECTS_COLLECTION, ['name', 'environment', 'variables']);
-    await setCollectionLayoutColumnsOrder(SERVERS_COLLECTION, ['name', 'ip', 'project', 'overrides']);
+    const userId = await directus.users.me.read().then(user => user.id);
+
+    await setCollectionLayoutColumnsOrder(KEYS_COLLECTION, ['key', 'info'], userId);
+    await setCollectionLayoutColumnsOrder(VARIABLES_COLLECTION, ['key', 'value', 'project'], userId);
+    await setCollectionLayoutColumnsOrder(OVERRIDES_COLLECTION, ['key', 'value', 'server'], userId);
+    await setCollectionLayoutColumnsOrder(PROJECTS_COLLECTION, ['name', 'environment', 'variables'], userId);
+    await setCollectionLayoutColumnsOrder(SERVERS_COLLECTION, ['name', 'ip', 'project', 'overrides'], userId);
+
+    /*
+        Create webhooks
+     */
+    await createNewUserWebhook(`http://localhost:${EXPRESS_PORT}/hooks/new-user`); // apply setCollectionLayoutColumnsOrder to new users
 
     /*
         Set user_created && user_updated relations
@@ -122,16 +126,14 @@ async function setProjectSettings() {
     return directus.settings.update(settings);
 }
 
-async function setCollectionLayoutColumnsOrder(collection, columnsOrder) {
-    const user = await directus.users.me.read();
-
+async function setCollectionLayoutColumnsOrder(collection, columnsOrder, user) {
     const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${directus.auth.token}`
     };
 
     const preset = {
-        user: user.id,
+        user,
         layout_query: { tabular: { fields: columnsOrder } },
         layout_options: { tabular: { widths: {} } },
         collection: collection
@@ -142,6 +144,28 @@ async function setCollectionLayoutColumnsOrder(collection, columnsOrder) {
         body: JSON.stringify(preset),
         'method': 'POST'
     });
+}
+
+async function createNewUserWebhook(url) {
+    const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${directus.auth.token}`
+    };
+
+    const webhook = {
+        name: 'New User',
+        actions: ['create'],
+        collections: ['keys'],
+        data: true,
+        method: 'POST',
+        url: 'http://192.168.1.107:3000/hooks/new-user'
+    };
+
+    return fetch(`${process.env.EXPRESS_DIRECTUS_API_URL}/webhooks`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(webhook),
+    }).then(response => response.json());
 }
 
 function getMetadataFields() {
@@ -805,102 +829,3 @@ async function addCollectionCompoundUniqueKeyConstraint(postgreClient, collectio
 
     return await postgreClient.query(query);
 }
-
-// fetch("http://localhost:8055/collections/variables", {
-//     "headers": {
-//         "accept": "application/json, text/plain, */*",
-//         "accept-language": "en-US,en;q=0.9",
-//         "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQwZTg5ZjUzLThhOGEtNDczNi04Njc1LTdhNmZmOGRmNDJjYiIsInJvbGUiOiJjZjYyYTVjMC05NzRhLTRlYjMtYTIzNS02YTA5YTI2ZjIyMDIiLCJhcHBfYWNjZXNzIjp0cnVlLCJhZG1pbl9hY2Nlc3MiOnRydWUsImlhdCI6MTY1NDc3NzUxNiwiZXhwIjoxNjU0Nzc4NDE2LCJpc3MiOiJkaXJlY3R1cyJ9.gC4jLxWz8eH4fDO7gJEuNvDH8NX9rbPK5D8l-asneXI",
-//         "cache-control": "no-store",
-//         "content-type": "application/json",
-//         "sec-ch-ua": "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"102\", \"Google Chrome\";v=\"102\"",
-//         "sec-ch-ua-mobile": "?0",
-//         "sec-ch-ua-platform": "\"macOS\"",
-//         "sec-fetch-dest": "empty",
-//         "sec-fetch-mode": "cors",
-//         "sec-fetch-site": "same-origin",
-//         "cookie": "SessionName=s%3A3e9e17e0-3694-4d82-824b-8aea720cc9fd.GSCBjPT1SHWxTdu4lceAPP4wvE4pzNnWWLd7BpK%2BR%2FE; Webstorm-afdd54d8=65d7a595-b8e4-465f-b968-b9df2b05d989; kibanalytics=s%3A54f862d5-0b3c-4166-a138-ece0bbcafa14.wLEYYLNCnf12gP%2BYcE0nUxzgXWKjRym3KOxlLbdaqS8; directus_refresh_token=mL2kVETv335jOFyzx4h90UQu9X30eADrMdc2_R3YzJ_ea7Q_flpa6HQ_dMuQ55TL",
-//         "Referer": "http://localhost:8055/admin/settings/data-model/variables",
-//         "Referrer-Policy": "strict-origin-when-cross-origin"
-//     },
-//     "body": "{\"meta\":{\"display_template\":\"{{key}}\"}}",
-//     "method": "PATCH"
-// });
-
-// fetch('https://env.virail.io/fields/projects/environment', {
-//     'headers': {
-//         'accept': 'application/json, text/plain, */*',
-//         'accept-language': 'en-US,en;q=0.9',
-//         'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjdlOWFkMDQ3LTg0MzAtNDk2Mi1iZWI0LTg1NWM1ZGI0ZmY1YSIsInJvbGUiOiI0MWI3ZmIyZS1lMjY0LTRhMDItODRhMC1jYzgzODQ0NDE0NjMiLCJhcHBfYWNjZXNzIjp0cnVlLCJhZG1pbl9hY2Nlc3MiOnRydWUsImlhdCI6MTY1NDc3NzIzMCwiZXhwIjoxNjU0Nzc4MTMwLCJpc3MiOiJkaXJlY3R1cyJ9.UO1Vy73DW0CtmhPWK_x_Mqt7gQu6yH5-ilS6w9uPoy0',
-//         'cache-control': 'no-store',
-//         'content-type': 'application/json',
-//         'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="102", "Google Chrome";v="102"',
-//         'sec-ch-ua-mobile': '?0',
-//         'sec-ch-ua-platform': '"macOS"',
-//         'sec-fetch-dest': 'empty',
-//         'sec-fetch-mode': 'cors',
-//         'sec-fetch-site': 'same-origin',
-//         'cookie': 'CF_Authorization=eyJhbGciOiJSUzI1NiIsImtpZCI6IjE1MmEzYzliMzQ1YjgwMWVhOWU0N2U4YWJmMGM0NDFjZmIwZmU2MDg2NDU0ZGMxOTg3YWM5ZTVmMjI5ZDVhNGQifQ.eyJhdWQiOlsiNWM1NzBkYTA2NWFhMjEyYjJiNmM1MWNhOTA2N2FkNGUzY2ZmMjIwYTFiZTMyZTBkMGQ1NTE1YjU4YTBiNDAyNyJdLCJlbWFpbCI6ImlicmFoaW0ubmV0dG9AdmlyYWlsLmNvbSIsImV4cCI6MTY1NjU0OTM2MCwiaWF0IjoxNjUzOTIxMzYwLCJuYmYiOjE2NTM5MjEzNjAsImlzcyI6Imh0dHBzOi8vdmlyYWlsLmNsb3VkZmxhcmVhY2Nlc3MuY29tIiwidHlwZSI6ImFwcCIsImlkZW50aXR5X25vbmNlIjoiRXFHY2c4R3FIVnYwdW1rdCIsInN1YiI6ImUzYzcyOTU0LTljNDAtNDMwNC05ZjA4LTUxNGRjZmRmZjIxZiIsImNvdW50cnkiOiJCUiJ9.VgydQVauE1k9xnlmLJRfpGqU9ci4-woMy0Kz4VScvMbPsKoJTLB4_qUhkWstDRDH6n09P_mcHkDKTrva5hyk_fWQw1zHaQ8yiJ1QQ6zbe_OsBIBETGc90LgMhzB4WnmEjYxZiFEJBsDQ_1gCOsZnCVq7gYsfx5XeY0QAVpPJYqXKnTp3AZHuKU5IrgmffuahwBBdA5JncrlrM0nyi87bLiJ84P_vcvR78s58OLMAS5qel6STwVUC_9wGOSngSPyjrFhlp57NxLMK51FUIccxE5JHTYE-VOvJV7ry67PB2qmt0kkt2eCdarkHktTOyS3GtKXwc0URGYxTIoTmT1fnAw; directus_refresh_token=eNljswyROJy0FIH_sW0gTTozwRgo5zTU6ucjiSe5Wb_wPdwhdEVdwAOzu6YjSQDk',
-//         'Referer': 'https://env.virail.io/admin/settings/data-model/projects/environment',
-//         'Referrer-Policy': 'strict-origin-when-cross-origin'
-//     },
-//     'body': {
-//         'collection': 'projects',
-//         'field': 'environment',
-//         'type': 'string',
-//         'schema': {
-//             'name': 'environment',
-//             'table': 'projects',
-//             'schema': 'public',
-//             'data_type': 'character varying',
-//             'is_nullable': true,
-//             'generation_expression': null,
-//             'default_value': null,
-//             'is_generated': false,
-//             'max_length': 255,
-//             'comment': null,
-//             'numeric_precision': null,
-//             'numeric_scale': null,
-//             'is_unique': false,
-//             'is_primary_key': false,
-//             'has_auto_increment': false,
-//             'foreign_key_schema': null,
-//             'foreign_key_table': null,
-//             'foreign_key_column': null
-//         },
-//         'meta': {
-//             'id': 13,
-//             'collection': 'projects',
-//             'field': 'environment',
-//             'special': null,
-//             'interface': 'select-dropdown',
-//             'options': {
-//                 'choices': [{ 'text': 'development', 'value': 'development' }, {
-//                     'text': 'production',
-//                     'value': 'production'
-//                 }]
-//             },
-//             'display': 'labels',
-//             'display_options': {
-//                 'choices': [{
-//                     'text': 'production',
-//                     'value': 'production',
-//                     'foreground': '#FFFFFF',
-//                     'background': '#2ECDA7'
-//                 }]
-//             },
-//             'readonly': false,
-//             'hidden': false,
-//             'sort': null,
-//             'width': 'full',
-//             'translations': null,
-//             'note': null,
-//             'conditions': null,
-//             'required': true,
-//             'group': null,
-//             'validation': null,
-//             'validation_message': null
-//         }
-//     },
-//     'method': 'PATCH'
-// });

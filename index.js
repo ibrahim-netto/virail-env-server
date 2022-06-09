@@ -14,6 +14,7 @@ const checkDirectus = require('./src/check-directus');
 const setStaticToken = require('./src/set-static-token');
 const applySchema = require('./src/schema/schema');
 const controller = require('./src/controller');
+const hooks = require('./src/hooks');
 const errorHandler = require('./src/error-handler');
 const getIp = require('./src/get-ip');
 
@@ -75,7 +76,19 @@ const { EXPRESS_PORT } = require('./src/constants');
         app.get('/api', limiter);
     }
 
+    /*
+        Hooks
+     */
+    app.post('/hooks/new-user', hooks.newUser);
+
+    /*
+        API endpoints
+     */
     app.get('/api/env', controller.getEnv);
+
+    /*
+        Swagger Docs
+     */
     app.use('/docs', swaggerHeaders, swaggerUi.serve, swaggerUi.setup(swaggerOptions));
 
     if (process.env.SENTRY_DSN) {
