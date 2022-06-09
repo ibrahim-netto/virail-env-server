@@ -1,0 +1,14 @@
+#app, #main-content, body {
+    --primary-alt: #F0ECFF !important;
+    --primary-10: #F0ECFF !important;
+    --primary-25: #D9D0FF !important;
+    --primary-50: #9eb3ce !important;
+    --primary-75: #829dbf !important;
+    --primary-90: #496890 !important;
+    --primary: #E35169 !important;
+    --primary-110: #344a66 !important;
+    --primary-125: #2d4059 !important;
+    --primary-150: #26364b !important;
+    --primary-175: #1f2c3d !important;
+    --primary-190: #1F2C53 !important;
+}

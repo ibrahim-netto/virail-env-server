@@ -1,3 +1,6 @@
+const fs = require('fs/promises');
+const path = require('path');
+const postgreClient = require('../postgre-client');
 const directus = require('../directus');
 const fetch = require('node-fetch');
 const logger = require('../logger');
@@ -14,8 +17,7 @@ const {
 
 module.exports = async () => {
     /*
-        @TODO Apply collection orders
-        @TODO Apply collection columns order
+        @TODO Apply collection columns order (how to add global preset?)
      */
 
     /*
@@ -51,6 +53,15 @@ module.exports = async () => {
     await setServersCollectionOverridesFieldRelation(SERVERS_COLLECTION, OVERRIDES_COLLECTION);
 
     /*
+        Apply collection columns order
+     */
+    await setCollectionLayoutColumnsOrder(KEYS_COLLECTION, ['key', 'info']);
+    await setCollectionLayoutColumnsOrder(VARIABLES_COLLECTION, ['key', 'value', 'project']);
+    await setCollectionLayoutColumnsOrder(OVERRIDES_COLLECTION, ['key', 'value', 'server']);
+    await setCollectionLayoutColumnsOrder(PROJECTS_COLLECTION, ['name', 'environment', 'variables']);
+    await setCollectionLayoutColumnsOrder(SERVERS_COLLECTION, ['name', 'ip', 'project', 'overrides']);
+
+    /*
         Set user_created && user_updated relations
      */
     const collections = [
@@ -67,6 +78,12 @@ module.exports = async () => {
             setCollectionUserUpdatedFieldRelation(collection)
         ]);
     }
+
+    /*
+        Add compound constraints
+    */
+    await addCollectionCompoundUniqueKeyConstraint(postgreClient, VARIABLES_COLLECTION, 'key', 'project');
+    await addCollectionCompoundUniqueKeyConstraint(postgreClient, PROJECTS_COLLECTION, 'name', 'environment');
 
     /*
         Load example data
@@ -92,28 +109,39 @@ async function collectionExists(collectionName) {
 }
 
 async function setProjectSettings() {
+    const customCss = await fs.readFile(path.join(__dirname, 'custom.css'), 'utf8');
+
     const settings = {
-        custom_css: `
-            #app, #main-content, body {
-                --primary-alt: #F0ECFF !important;
-                --primary-10: #F0ECFF !important;
-                --primary-25: #D9D0FF !important;
-                --primary-50: #9eb3ce !important;
-                --primary-75: #829dbf !important;
-                --primary-90: #496890 !important;
-                --primary: #E35169 !important;
-                --primary-110: #344a66 !important;
-                --primary-125: #2d4059 !important;
-                --primary-150: #26364b !important;
-                --primary-175: #1f2c3d !important;
-                --primary-190: #1F2C53 !important;
-            }
-        `,
         project_name: 'virail-env-server',
-        project_url: 'https://github.com/ibrahim-netto/virail-env-server'
+        project_url: 'https://github.com/ibrahim-netto/virail-env-server',
+        default_language: 'en-US',
+        project_color: '#E35169',
+        custom_css: customCss
     }
 
     return directus.settings.update(settings);
+}
+
+async function setCollectionLayoutColumnsOrder(collection, columnsOrder) {
+    const user = await directus.users.me.read();
+
+    const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${directus.auth.token}`
+    };
+
+    const preset = {
+        user: user.id,
+        layout_query: { tabular: { fields: columnsOrder } },
+        layout_options: { tabular: { widths: {} } },
+        collection: collection
+    }
+
+    return fetch(`${process.env.EXPRESS_DIRECTUS_API_URL}/presets`, {
+        headers,
+        body: JSON.stringify(preset),
+        'method': 'POST'
+    });
 }
 
 function getMetadataFields() {
@@ -193,7 +221,12 @@ async function createKeysCollection(keysCollectionName) {
                 special: null,
                 options: {
                     trim: true
-                }
+                },
+                display: 'formatted-value',
+                display_options: {
+                    icon: 'vpn_key',
+                    color: '#E35169'
+                },
             },
             schema: {
                 is_primary_key: true,
@@ -216,7 +249,10 @@ async function createKeysCollection(keysCollectionName) {
         ],
         schema: {},
         meta: {
-            singleton: false
+            singleton: false,
+            icon: 'vpn_key',
+            display_template: '{{key}} ({{info}})',
+            sort: 1
         }
     };
 
@@ -274,6 +310,10 @@ async function createVariablesCollection(variablesCollectionName) {
                 required: true,
                 options: {
                     template: '{{name}} - {{environment}}'
+                },
+                display: 'related-values',
+                display_options: {
+                    template: '{{name}} - {{environment}}'
                 }
             }
         },
@@ -281,8 +321,9 @@ async function createVariablesCollection(variablesCollectionName) {
         ],
         schema: {},
         meta: {
-            hidden: true,
-            singleton: false
+            singleton: false,
+            icon: 'abc',
+            sort: 2
         }
     };
 
@@ -348,7 +389,8 @@ async function createOverridesCollection(overridesCollectionName) {
         schema: {},
         meta: {
             hidden: true,
-            singleton: false
+            singleton: false,
+            sort: 3
         }
     };
 
@@ -382,6 +424,12 @@ async function createProjectsCollection(projectsCollectionName) {
                 required: true,
                 options: {
                     trim: true
+                },
+                display: 'formatted-value',
+                display_options: {
+                    font: 'monospace',
+                    bold: true,
+                    color: '#3399FF'
                 }
             }
         }, {
@@ -400,7 +448,21 @@ async function createProjectsCollection(projectsCollectionName) {
                         text: 'production',
                         value: 'production'
                     }]
-                }
+                },
+                display: 'labels',
+                display_options: {
+                    choices: [{
+                        text: 'development',
+                        value: 'development',
+                        foreground: '#FFFFFF',
+                        background: '#c8cd2e'
+                    }, {
+                        text: 'production',
+                        value: 'production',
+                        foreground: '#FFFFFF',
+                        background: '#68cd2e'
+                    }]
+                },
             }
         }, {
             field: 'variables',
@@ -412,13 +474,21 @@ async function createProjectsCollection(projectsCollectionName) {
                 options: {
                     template: '{{key}} => {{value}}',
                     enableSelect: false
+                },
+                display: 'related-values',
+                display_options: {
+                    template: '{{key}}'
                 }
             }
         },
             ...getMetadataFields()
         ],
         schema: {},
-        meta: { singleton: false }
+        meta: {
+            singleton: false,
+            icon: 'card_travel',
+            sort: 4
+        }
     };
 
     return directus.collections.createOne(collection);
@@ -444,7 +514,9 @@ async function createServersCollection(serversCollectionName) {
         }, {
             field: 'name',
             type: 'string',
-            schema: {},
+            schema: {
+                is_unique: true
+            },
             meta: {
                 interface: 'input',
                 special: null,
@@ -477,6 +549,10 @@ async function createServersCollection(serversCollectionName) {
                 required: true,
                 options: {
                     template: '{{name}} - {{environment}}'
+                },
+                display: 'related-values',
+                display_options: {
+                    template: '{{name}} - {{environment}}'
                 }
             }
         }, {
@@ -489,6 +565,10 @@ async function createServersCollection(serversCollectionName) {
                 options: {
                     template: '{{key}} => {{value}}',
                     enableSelect: false
+                },
+                display: 'related-values',
+                display_options: {
+                    template: '{{key}}'
                 }
             }
         }, {
@@ -518,7 +598,11 @@ async function createServersCollection(serversCollectionName) {
             ...getMetadataFields()
         ],
         schema: {},
-        meta: { singleton: false }
+        meta: {
+            singleton: false,
+            icon: 'dns',
+            sort: 5
+        }
     };
 
     return directus.collections.createOne(collection);
@@ -706,3 +790,117 @@ function setCollectionUserUpdatedFieldRelation(collection) {
         body: JSON.stringify(relation),
     }).then(response => response.json());
 }
+
+async function addCollectionCompoundUniqueKeyConstraint(postgreClient, collection, ...columns) {
+    if (!postgreClient._connected) await postgreClient.connect();
+    /*
+        Using Directus/Postgre constraint name pattern
+     */
+    const constraintName = `${collection}` +
+        columns.join('_') +
+        '_unique';
+
+    const query = `ALTER TABLE ${collection}
+                   ADD CONSTRAINT ${constraintName} UNIQUE(${columns.join(',')});`
+
+    return await postgreClient.query(query);
+}
+
+// fetch("http://localhost:8055/collections/variables", {
+//     "headers": {
+//         "accept": "application/json, text/plain, */*",
+//         "accept-language": "en-US,en;q=0.9",
+//         "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQwZTg5ZjUzLThhOGEtNDczNi04Njc1LTdhNmZmOGRmNDJjYiIsInJvbGUiOiJjZjYyYTVjMC05NzRhLTRlYjMtYTIzNS02YTA5YTI2ZjIyMDIiLCJhcHBfYWNjZXNzIjp0cnVlLCJhZG1pbl9hY2Nlc3MiOnRydWUsImlhdCI6MTY1NDc3NzUxNiwiZXhwIjoxNjU0Nzc4NDE2LCJpc3MiOiJkaXJlY3R1cyJ9.gC4jLxWz8eH4fDO7gJEuNvDH8NX9rbPK5D8l-asneXI",
+//         "cache-control": "no-store",
+//         "content-type": "application/json",
+//         "sec-ch-ua": "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"102\", \"Google Chrome\";v=\"102\"",
+//         "sec-ch-ua-mobile": "?0",
+//         "sec-ch-ua-platform": "\"macOS\"",
+//         "sec-fetch-dest": "empty",
+//         "sec-fetch-mode": "cors",
+//         "sec-fetch-site": "same-origin",
+//         "cookie": "SessionName=s%3A3e9e17e0-3694-4d82-824b-8aea720cc9fd.GSCBjPT1SHWxTdu4lceAPP4wvE4pzNnWWLd7BpK%2BR%2FE; Webstorm-afdd54d8=65d7a595-b8e4-465f-b968-b9df2b05d989; kibanalytics=s%3A54f862d5-0b3c-4166-a138-ece0bbcafa14.wLEYYLNCnf12gP%2BYcE0nUxzgXWKjRym3KOxlLbdaqS8; directus_refresh_token=mL2kVETv335jOFyzx4h90UQu9X30eADrMdc2_R3YzJ_ea7Q_flpa6HQ_dMuQ55TL",
+//         "Referer": "http://localhost:8055/admin/settings/data-model/variables",
+//         "Referrer-Policy": "strict-origin-when-cross-origin"
+//     },
+//     "body": "{\"meta\":{\"display_template\":\"{{key}}\"}}",
+//     "method": "PATCH"
+// });
+
+// fetch('https://env.virail.io/fields/projects/environment', {
+//     'headers': {
+//         'accept': 'application/json, text/plain, */*',
+//         'accept-language': 'en-US,en;q=0.9',
+//         'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjdlOWFkMDQ3LTg0MzAtNDk2Mi1iZWI0LTg1NWM1ZGI0ZmY1YSIsInJvbGUiOiI0MWI3ZmIyZS1lMjY0LTRhMDItODRhMC1jYzgzODQ0NDE0NjMiLCJhcHBfYWNjZXNzIjp0cnVlLCJhZG1pbl9hY2Nlc3MiOnRydWUsImlhdCI6MTY1NDc3NzIzMCwiZXhwIjoxNjU0Nzc4MTMwLCJpc3MiOiJkaXJlY3R1cyJ9.UO1Vy73DW0CtmhPWK_x_Mqt7gQu6yH5-ilS6w9uPoy0',
+//         'cache-control': 'no-store',
+//         'content-type': 'application/json',
+//         'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="102", "Google Chrome";v="102"',
+//         'sec-ch-ua-mobile': '?0',
+//         'sec-ch-ua-platform': '"macOS"',
+//         'sec-fetch-dest': 'empty',
+//         'sec-fetch-mode': 'cors',
+//         'sec-fetch-site': 'same-origin',
+//         'cookie': 'CF_Authorization=eyJhbGciOiJSUzI1NiIsImtpZCI6IjE1MmEzYzliMzQ1YjgwMWVhOWU0N2U4YWJmMGM0NDFjZmIwZmU2MDg2NDU0ZGMxOTg3YWM5ZTVmMjI5ZDVhNGQifQ.eyJhdWQiOlsiNWM1NzBkYTA2NWFhMjEyYjJiNmM1MWNhOTA2N2FkNGUzY2ZmMjIwYTFiZTMyZTBkMGQ1NTE1YjU4YTBiNDAyNyJdLCJlbWFpbCI6ImlicmFoaW0ubmV0dG9AdmlyYWlsLmNvbSIsImV4cCI6MTY1NjU0OTM2MCwiaWF0IjoxNjUzOTIxMzYwLCJuYmYiOjE2NTM5MjEzNjAsImlzcyI6Imh0dHBzOi8vdmlyYWlsLmNsb3VkZmxhcmVhY2Nlc3MuY29tIiwidHlwZSI6ImFwcCIsImlkZW50aXR5X25vbmNlIjoiRXFHY2c4R3FIVnYwdW1rdCIsInN1YiI6ImUzYzcyOTU0LTljNDAtNDMwNC05ZjA4LTUxNGRjZmRmZjIxZiIsImNvdW50cnkiOiJCUiJ9.VgydQVauE1k9xnlmLJRfpGqU9ci4-woMy0Kz4VScvMbPsKoJTLB4_qUhkWstDRDH6n09P_mcHkDKTrva5hyk_fWQw1zHaQ8yiJ1QQ6zbe_OsBIBETGc90LgMhzB4WnmEjYxZiFEJBsDQ_1gCOsZnCVq7gYsfx5XeY0QAVpPJYqXKnTp3AZHuKU5IrgmffuahwBBdA5JncrlrM0nyi87bLiJ84P_vcvR78s58OLMAS5qel6STwVUC_9wGOSngSPyjrFhlp57NxLMK51FUIccxE5JHTYE-VOvJV7ry67PB2qmt0kkt2eCdarkHktTOyS3GtKXwc0URGYxTIoTmT1fnAw; directus_refresh_token=eNljswyROJy0FIH_sW0gTTozwRgo5zTU6ucjiSe5Wb_wPdwhdEVdwAOzu6YjSQDk',
+//         'Referer': 'https://env.virail.io/admin/settings/data-model/projects/environment',
+//         'Referrer-Policy': 'strict-origin-when-cross-origin'
+//     },
+//     'body': {
+//         'collection': 'projects',
+//         'field': 'environment',
+//         'type': 'string',
+//         'schema': {
+//             'name': 'environment',
+//             'table': 'projects',
+//             'schema': 'public',
+//             'data_type': 'character varying',
+//             'is_nullable': true,
+//             'generation_expression': null,
+//             'default_value': null,
+//             'is_generated': false,
+//             'max_length': 255,
+//             'comment': null,
+//             'numeric_precision': null,
+//             'numeric_scale': null,
+//             'is_unique': false,
+//             'is_primary_key': false,
+//             'has_auto_increment': false,
+//             'foreign_key_schema': null,
+//             'foreign_key_table': null,
+//             'foreign_key_column': null
+//         },
+//         'meta': {
+//             'id': 13,
+//             'collection': 'projects',
+//             'field': 'environment',
+//             'special': null,
+//             'interface': 'select-dropdown',
+//             'options': {
+//                 'choices': [{ 'text': 'development', 'value': 'development' }, {
+//                     'text': 'production',
+//                     'value': 'production'
+//                 }]
+//             },
+//             'display': 'labels',
+//             'display_options': {
+//                 'choices': [{
+//                     'text': 'production',
+//                     'value': 'production',
+//                     'foreground': '#FFFFFF',
+//                     'background': '#2ECDA7'
+//                 }]
+//             },
+//             'readonly': false,
+//             'hidden': false,
+//             'sort': null,
+//             'width': 'full',
+//             'translations': null,
+//             'note': null,
+//             'conditions': null,
+//             'required': true,
+//             'group': null,
+//             'validation': null,
+//             'validation_message': null
+//         }
+//     },
+//     'method': 'PATCH'
+// });
