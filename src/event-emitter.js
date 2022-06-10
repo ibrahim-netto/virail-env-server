@@ -1,5 +1,6 @@
 const EventEmitter = require('events');
 const { setCollectionLayoutColumnsOrder } = require('./utils');
+
 const {
     KEYS_COLLECTION,
     VARIABLES_COLLECTION,
@@ -13,7 +14,6 @@ const eventEmitter = new EventEmitter();
 /*
     Listen for new users, apply collection columns order
  */
-
 eventEmitter.on('new_user', async user => {
     await Promise.all([
         setCollectionLayoutColumnsOrder(KEYS_COLLECTION, ['key', 'info'], user.id),

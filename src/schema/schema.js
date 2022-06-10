@@ -62,7 +62,7 @@ module.exports = async () => {
         setCollectionLayoutColumnsOrder(PROJECTS_COLLECTION, ['name', 'environment', 'variables'], userId),
         setCollectionLayoutColumnsOrder(SERVERS_COLLECTION, ['name', 'ip', 'project', 'overrides'], userId)
     ]);
-    
+
     /*
         Set user_created && user_updated relations
      */
@@ -85,8 +85,8 @@ module.exports = async () => {
         Add compound constraints
     */
     await Promise.all([
-        addCollectionCompoundUniqueKeyConstraint(postgreClient, VARIABLES_COLLECTION, 'key', 'project'),
-        addCollectionCompoundUniqueKeyConstraint(postgreClient, PROJECTS_COLLECTION, 'name', 'environment')
+        addCollectionCompoundUniqueKeyConstraint(VARIABLES_COLLECTION, 'key', 'project'),
+        addCollectionCompoundUniqueKeyConstraint(PROJECTS_COLLECTION, 'name', 'environment')
     ]);
 
     /*
@@ -815,7 +815,7 @@ function setCollectionUserUpdatedFieldRelation(collection) {
     }).then(response => response.json());
 }
 
-async function addCollectionCompoundUniqueKeyConstraint(postgreClient, collection, ...columns) {
+async function addCollectionCompoundUniqueKeyConstraint(collection, ...columns) {
     if (!postgreClient._connected) await postgreClient.connect();
     /*
         Using Directus/Postgre constraint name pattern

@@ -13,6 +13,7 @@ const swaggerOptions = require('./src/swagger/options.swagger');
 const checkDirectus = require('./src/check-directus');
 const setStaticToken = require('./src/set-static-token');
 const applySchema = require('./src/schema/schema');
+const postgreTriggers = require('./src/postgre-triggers');
 const controller = require('./src/controller');
 const errorHandler = require('./src/error-handler');
 const getIp = require('./src/get-ip');
@@ -21,11 +22,12 @@ const { EXPRESS_PORT } = require('./src/constants');
 
 (async () => {
     /*
-        Set static token, default schema & load example data
+        Set static token, default schema, load example data & triggers
      */
     await checkDirectus();
     await setStaticToken();
     await applySchema();
+    await postgreTriggers();
 
     const app = express();
 
