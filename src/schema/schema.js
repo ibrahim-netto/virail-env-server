@@ -1,6 +1,6 @@
 const fs = require('fs/promises');
 const path = require('path');
-const postgreClient = require('../postgre-client');
+const postgrePool = require('../postgre-pool');
 const directus = require('../directus');
 const fetch = require('node-fetch');
 const logger = require('../logger');
@@ -816,7 +816,7 @@ function setCollectionUserUpdatedFieldRelation(collection) {
 }
 
 async function addCollectionCompoundUniqueKeyConstraint(collection, ...columns) {
-    if (!postgreClient._connected) await postgreClient.connect();
+    const postgreClient = await postgrePool.connect()
     /*
         Using Directus/Postgre constraint name pattern
      */
@@ -827,5 +827,6 @@ async function addCollectionCompoundUniqueKeyConstraint(collection, ...columns) 
     const query = `ALTER TABLE ${collection}
                    ADD CONSTRAINT ${constraintName} UNIQUE(${columns.join(',')});`
 
-    return await postgreClient.query(query);
+    return await postgreClient.query(query)
+        .finally(() => postgreClient.release());
 }

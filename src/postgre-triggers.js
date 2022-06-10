@@ -1,8 +1,8 @@
-const postgreClient = require('./postgre-client');
+const postgrePool = require('./postgre-pool');
 const eventEmitter = require('./event-emitter');
 
 module.exports = async () => {
-    if (!postgreClient._connected) await postgreClient.connect();
+    const postgreClient = await postgrePool.connect();
 
     const fnQuery = `
         CREATE OR REPLACE FUNCTION notify_new_user()
