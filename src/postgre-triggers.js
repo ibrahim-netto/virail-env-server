@@ -18,7 +18,8 @@ module.exports = async () => {
     `;
 
     const triggerQuery = `
-        CREATE OR REPLACE TRIGGER notify_new_user
+        DROP TRIGGER IF EXISTS notify_new_user ON "directus_users";
+        CREATE TRIGGER notify_new_user
         AFTER INSERT
         ON "directus_users"
         FOR EACH ROW
