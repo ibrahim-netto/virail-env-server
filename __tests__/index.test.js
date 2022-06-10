@@ -16,9 +16,6 @@ const LOCAL_IP = '::1';
 
 const directus = new Directus(DIRECTUS_API_URL);
 
-/*
-    This tests assumes that the example data imported on first load still present on database.
-*/
 describe('Env Server', () => {
     beforeAll(async () => {
         await directus.auth.login({
