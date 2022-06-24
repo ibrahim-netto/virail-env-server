@@ -1,5 +1,9 @@
 version: "3.5"
 
+volumes:
+  data-varnish:
+    driver: local
+
 services:
   postgres:
     container_name: virail-env-server.postgres
@@ -63,3 +67,28 @@ services:
       options:
         max-size: ${DOCKER_LOG_MAX_SIZE}
         max-file: ${DOCKER_LOG_MAX_FILE}
+
+  varnish:
+    image: darioguarascio/varnish-elk-docker:latest
+    container_name: virail-env-server.varnish
+    volumes:
+      - data-varnish:/vcache:rw
+      - ./config/varnish_backends.vcl:/usr/share/varnish/vcl/varnish_backends.vcl
+    environment:
+      ENV: ${ENV:-dev}
+      VARNISHD_MEMORY: ${VARNISHD_MEMORY:-malloc,32m}
+      VARNISH_PURGE_KEY: ${VARNISH_PURGE_KEY:-dev}
+    healthcheck:
+      test: ["CMD", "sh", "-c", "test -e /proc/`cat /varnish.pid` || (kill -s 15 -1 && (sleep 10; kill -s 9 -1)) " ]
+      interval: 5s
+      timeout: 1s
+      retries: 1
+      start_period: 5s
+    logging:
+      driver: syslog
+      options:
+        cache-disabled: "false"
+        syslog-address: udp://${VARNISH_LOGGER_IP:-127.0.0.1}:${VARNISH_LOGGER_PORT:-5445}
+    restart: always
+    ports:
+      - ${VARNISH_LISTEN:-80}:80
