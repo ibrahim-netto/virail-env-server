@@ -30,6 +30,8 @@ services:
       - "${DIRECTUS_LISTEN}:8055"
     volumes:
       - ./uploads:/directus/uploads
+    env_file:
+      - .directus.env
     environment:
       KEY: ${DIRECTUS_KEY}
       SECRET: ${DIRECTUS_SECRET}
