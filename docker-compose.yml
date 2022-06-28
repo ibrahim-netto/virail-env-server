@@ -3,6 +3,7 @@ version: "3.9"
 services:
   postgres:
     container_name: virail-env-server.postgres
+    hostname: postgres
     image: postgis/postgis:13-master
     restart: unless-stopped
     volumes:
@@ -11,6 +12,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     logging:
       options:
         max-size: ${DOCKER_LOG_MAX_SIZE:-10m}
@@ -18,10 +24,12 @@ services:
 
   directus:
     container_name: virail-env-server.directus
+    hostname: directus
     image: directus/directus:latest
     restart: unless-stopped
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     ports:
       - ${DIRECTUS_LISTEN:-8055}:8055
     volumes:
@@ -35,9 +43,6 @@ services:
       DB_DATABASE: ${DIRECTUS_DB_DATABASE:-postgres}
       DB_USER: ${DIRECTUS_DB_USER:-postgres}
       DB_PASSWORD: ${DIRECTUS_DB_PASSWORD:-postgres}
-      CACHE_ENABLED: ${DIRECTUS_CACHE_ENABLED:-false}
-      CACHE_STORE: ${DIRECTUS_CACHE_STORE:-redis}
-      CACHE_REDIS: ${DIRECTUS_CACHE_REDIS:-redis://redis:6379}
       ADMIN_EMAIL: ${DIRECTUS_ADMIN_EMAIL:-admin@example.com}
       ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD:-d1r3ctu5}
       AUTH_PROVIDERS: ${DIRECTUS_AUTH_PROVIDERS}
@@ -54,12 +59,14 @@ services:
         max-file: ${DOCKER_LOG_MAX_FILE:-3}
 
   node:
+    profiles: [ "production" ]
     container_name: virail-env-server.node
+    hostname: node
     build: .
     depends_on:
-      - directus
+      directus:
+        condition: service_started
     restart: unless-stopped
-    hostname: node
     volumes:
       - .:/app
       - /app/node_modules/
@@ -76,7 +83,7 @@ services:
 
   varnish:
     profiles: [ "production" ]
-    container_name: varnish
+    container_name: virail-env-server.varnish
     hostname: varnish
     image: darioguarascio/varnish-elk-docker:latest
     restart: unless-stopped
