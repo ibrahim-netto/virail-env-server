@@ -1,12 +1,12 @@
 const components = require('./components.swagger');
 const paths = require('./paths.swagger');
 
-const { VERSION, EXPRESS_PORT } = require('../constants');
+const { PROJECT_NAME, VERSION, EXPRESS_PORT } = require('../constants');
 
 const options = {
     openapi: '3.0.0',
     info: {
-        title: 'Virail Env Server',
+        title: PROJECT_NAME,
         version: VERSION,
         description: '',
         license: {

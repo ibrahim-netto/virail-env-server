@@ -14,6 +14,7 @@ const checkDirectus = require('./src/check-directus');
 const setStaticToken = require('./src/set-static-token');
 const applySchema = require('./src/schema/schema');
 const postgreTriggers = require('./src/postgre-triggers');
+const { varnishProjectHeaders } = require('./src/varnish-headers');
 const controller = require('./src/controller');
 const errorHandler = require('./src/error-handler');
 const getIp = require('./src/get-ip');
@@ -55,6 +56,10 @@ const { EXPRESS_PORT } = require('./src/constants');
             dsn: process.env.SENTRY_DSN
         });
         app.use(Sentry.Handlers.requestHandler());
+    }
+
+    if (!!+process.env.EXPRESS_VARNISH_HEADERS) {
+        app.use(varnishProjectHeaders);
     }
 
     if (!!+process.env.EXPRESS_GZIP) {

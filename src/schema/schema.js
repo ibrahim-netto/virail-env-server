@@ -141,28 +141,6 @@ async function setCollectionLayoutColumnsOrder(collection, columnsOrder, user) {
     });
 }
 
-async function createNewUserWebhook(url) {
-    const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${directus.auth.token}`
-    };
-
-    const webhook = {
-        name: 'New User',
-        actions: ['create'],
-        collections: ['keys'],
-        data: true,
-        method: 'POST',
-        url: 'http://192.168.1.107:3000/hooks/new-user'
-    };
-
-    return fetch(`${process.env.EXPRESS_DIRECTUS_API_URL}/webhooks`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(webhook),
-    }).then(response => response.json());
-}
-
 function getMetadataFields() {
     return [{
         field: 'user_created',
@@ -316,7 +294,8 @@ async function createVariablesCollection(variablesCollectionName) {
                 special: null,
                 require: true,
                 options: {
-                    trim: true
+                    trim: true,
+                    clear: true
                 }
             }
         }, {
