@@ -59,6 +59,7 @@ const { EXPRESS_PORT } = require('./src/constants');
     }
 
     if (!!+process.env.EXPRESS_VARNISH_HEADERS) {
+        app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
         app.use(varnishProjectHeaders);
     }
 
