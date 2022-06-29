@@ -65,7 +65,7 @@ describe('Env Server', () => {
     test('Get .env with static_token', async () => {
         const server = await getServerByName(ENV_SERVER_TEST_NAME);
 
-        const url = `${NODE_API_URL}/api/env`;
+        const url = `${NODE_API_URL}/api/v1/env`;
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${server.static_token}`
@@ -82,7 +82,7 @@ describe('Env Server', () => {
     test('Get .env with IP authentication', async () => {
         const server = await getServerByName(ENV_SERVER_TEST_NAME);
 
-        const url = `${NODE_API_URL}/api/env`;
+        const url = `${NODE_API_URL}/api/v1/env`;
         const headers = {
             'Content-Type': 'application/json'
         };
@@ -104,7 +104,7 @@ describe('Env Server', () => {
             ip: '999.999.999.999'
         });
 
-        const url = `${NODE_API_URL}/api/env`;
+        const url = `${NODE_API_URL}/api/v1/env`;
         const headers = {
             'Content-Type': 'application/json'
         };
@@ -129,7 +129,7 @@ describe('Env Server', () => {
             ip: '999.999.999.999'
         });
 
-        const url = `${NODE_API_URL}/api/env`;
+        const url = `${NODE_API_URL}/api/v1/env`;
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${await directus.utils.random.string(64)}`

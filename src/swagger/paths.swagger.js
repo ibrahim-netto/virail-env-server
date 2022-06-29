@@ -1,6 +1,6 @@
 module.exports = {
     paths: {
-        '/api/env': {
+        '/api/v1/env': {
             get: {
                 description: 'Request environment variables.',
                 operationId: 'requestEnv',

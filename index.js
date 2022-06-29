@@ -86,7 +86,7 @@ const { EXPRESS_PORT } = require('./src/constants');
     /*
         API endpoints
      */
-    app.get('/api/env', controller.getEnv);
+    app.get('/api/v1/env', controller.getEnv);
 
     /*
         Swagger Docs
