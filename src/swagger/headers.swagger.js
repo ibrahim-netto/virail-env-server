@@ -1,4 +1,8 @@
+const { PROJECT_NAME } = require('../constants');
+
 module.exports = (req, res, next) => {
-    res.set('X-Project', 'virail-env-server-docs');
+    if (!!+process.env.EXPRESS_VARNISH_HEADERS) {
+        res.set('X-Project', `${PROJECT_NAME}-docs`);
+    }
     next();
 }
