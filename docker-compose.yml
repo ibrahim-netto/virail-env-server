@@ -74,8 +74,6 @@ services:
     command: node ./index.js
     env_file:
       - .env
-    ports:
-      - ${EXPRESS_LISTEN}:3000
     logging:
       options:
         max-size: ${DOCKER_LOG_MAX_SIZE:-10m}
