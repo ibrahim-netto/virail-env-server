@@ -11,7 +11,7 @@ const swaggerHeaders = require('./src/swagger/headers.swagger');
 const swaggerUi = require('swagger-ui-express');
 const swaggerOptions = require('./src/swagger/options.swagger');
 const checkDirectus = require('./src/check-directus');
-const setStaticToken = require('./src/set-static-token');
+const directusLogin = require('./src/directus-login');
 const applySchema = require('./src/schema/schema');
 const postgreTriggers = require('./src/postgre-triggers');
 const { varnishProjectHeaders } = require('./src/varnish-headers');
@@ -26,7 +26,7 @@ const { EXPRESS_PORT } = require('./src/constants');
         Set static token, default schema, load example data & triggers
      */
     await checkDirectus();
-    await setStaticToken();
+    await directusLogin();
     await applySchema();
     await postgreTriggers();
 
