@@ -1,32 +1,12 @@
 const _ = require('lodash');
 const directus = require('./directus');
-const getIp = require('./get-ip');
+const getAuthFilter = require('./get-auth-filter');
 
 const { SERVERS_COLLECTION } = require('./constants');
 
 module.exports.getEnv = async (req, res, next) => {
     try {
-        const token = req.get('Authorization')?.replace('Bearer ', '');
-        const filter = {};
-
-        if (token) {
-            /*
-                Static token authentication expects string with a length of 64
-             */
-            if (token.length < 64) {
-                res.status(403).json({ status: 'error', message: `You don't have permission to access this.` });
-                return;
-            }
-
-            filter.static_token = token;
-        } else {
-            /*
-                With IP based authentication, it's not possible to get the IP if it's behind a proxy because
-                it opens a security flaw where the IP could be spoofed on the x-forwarded-for HTTP header.
-            */
-            const ip = getIp(req);
-            filter.ip = { _eq: ip }
-        }
+        const filter = getAuthFilter(req);
 
         const query = {
             filter,
@@ -64,6 +44,64 @@ module.exports.getEnv = async (req, res, next) => {
 
         const env = variables?.reduce((acc, entry) => acc += `${entry.key}="${entry.value}"\n`, '');
         res.type('text/plain').send(env);
+    } catch (err) {
+        next(err);
+    }
+}
+
+module.exports.getConfig = async (req, res, next) => {
+    try {
+        const filter = getAuthFilter(req);
+
+        const query = {
+            filter,
+            fields: [
+                'id',
+            ]
+        };
+        const server = await directus.items(SERVERS_COLLECTION)
+            .readByQuery(query)
+            .then(response => response?.data[0]);
+
+        if (!server) {
+            res.status(403).json({ status: 'error', message: `You don't have permission to access this.` });
+            return;
+        }
+
+        const collection = req.params.collection;
+        /*
+            Aparently this system collection doesn't support filters
+
+            'This endpoint doesn't currently support any query parameters.'
+            https://docs.directus.io/reference/system/collections.html#the-collection-object
+         */
+        const group = await directus.items('directus_collections')
+            .readByQuery({
+                limit: -1
+            })
+            .then(response => response.data.filter(v => v.collection === collection))
+            .then(data => data[0]?.meta?.group);
+
+        if (group !== 'config') {
+            /*
+                Collection needs to be in config group, otherwise this endpoint could
+                open a security risk
+             */
+            res.status(403).json({ status: 'error', message: `You don't have permission to access this.` });
+            return;
+        }
+
+        const result = await directus.items(collection)
+            .readByQuery({
+                filter: {
+                    server: {
+                        _eq: server.id
+                    }
+                }
+            })
+            .then(response => response?.data[0]);
+
+        res.type('text/plain').send(result?.config || '');
     } catch (err) {
         next(err);
     }

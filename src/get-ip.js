@@ -32,7 +32,7 @@ const ranges = {
     ]
 };
 
-module.exports = (req) => {
+module.exports = req => {
     /*
         ::ffff: is a subnet prefix for IPv4 (32 bit) addresses that are placed inside an IPv6 (128 bit) space.
      */
