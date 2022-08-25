@@ -82,9 +82,9 @@ module.exports.getConfig = async (req, res, next) => {
             .then(response => response.data.filter(v => v.collection === collection))
             .then(data => data[0]?.meta?.group);
 
-        if (group !== 'config') {
+        if (group !== 'configs') {
             /*
-                Collection needs to be in config group, otherwise this endpoint could
+                Collection needs to be in configs group, otherwise this endpoint could
                 open a security risk
              */
             res.status(403).json({ status: 'error', message: `You don't have permission to access this.` });
