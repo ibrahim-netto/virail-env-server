@@ -101,7 +101,14 @@ module.exports.getConfig = async (req, res, next) => {
             })
             .then(response => response?.data[0]);
 
-        res.type('text/plain').send(result?.config || '');
+        if (result?.config) {
+            res.type('text/plain').send(result.config);
+        } else {
+            /*
+                Config not found
+             */
+            res.sendStatus(404);
+        }
     } catch (err) {
         next(err);
     }
