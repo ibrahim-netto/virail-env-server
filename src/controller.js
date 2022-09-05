@@ -2,7 +2,7 @@ const _ = require('lodash');
 const directus = require('./directus');
 const getAuthFilter = require('./get-auth-filter');
 
-const { SERVERS_COLLECTION } = require('./constants');
+const { SERVERS_COLLECTION, CONFIGS_COLLECTION } = require('./constants');
 
 module.exports.getEnv = async (req, res, next) => {
     try {
@@ -68,38 +68,24 @@ module.exports.getConfig = async (req, res, next) => {
             return;
         }
 
-        const collection = req.params.collection;
-        /*
-            Aparently this system collection doesn't support filters
-
-            'This endpoint doesn't currently support any query parameters.'
-            https://docs.directus.io/reference/system/collections.html#the-collection-object
-         */
-        const group = await directus.items('directus_collections')
-            .readByQuery({
-                limit: -1
-            })
-            .then(response => response.data.filter(v => v.collection === collection))
-            .then(data => data[0]?.meta?.group);
-
-        if (group !== 'configs') {
-            /*
-                Collection needs to be in configs group, otherwise this endpoint could
-                open a security risk
-             */
-            res.status(403).json({ status: 'error', message: `You don't have permission to access this.` });
-            return;
-        }
-
-        const result = await directus.items(collection)
+        const result = await directus.items(CONFIGS_COLLECTION)
             .readByQuery({
                 filter: {
+                    service: {
+                        _eq: req.params.service
+                    },
+                    config: {
+                        _eq: req.params.config
+                    },
                     server: {
                         _eq: server.id
                     }
                 }
             })
             .then(response => response?.data[0]);
+
+
+
 
         if (result?.config) {
             res.type('text/plain').send(result.config);
