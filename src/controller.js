@@ -74,7 +74,7 @@ module.exports.getConfig = async (req, res, next) => {
                     service: {
                         _eq: req.params.service
                     },
-                    config: {
+                    config_name: {
                         _eq: req.params.config
                     },
                     server: {
