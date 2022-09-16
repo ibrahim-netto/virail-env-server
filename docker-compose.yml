@@ -109,19 +109,19 @@ services:
         cache-disabled: "false"
         syslog-address: udp://${VARNISH_LOGGER_IP:-127.0.0.1}:${VARNISH_LOGGER_PORT:-5445}
 
-  munin-node:
-    profiles: [ "production" ]
-    container_name: virail-env-server.munin-node
-    image: darioguarascio/munin-node:latest
-    privileged: true
-    restart: "always"
-    environment:
-      MUNIN_ALLOW: ${MUNIN_ALLOW:-0.0.0.0/0}
-      MUNIN_ENABLED_PLUGINS: ${MUNIN_ENABLED_PLUGINS:-traffic cpu df netstat system* load memory uptime}
-      MUNIN_LINKED_PLUGINS: ${MUNIN_LINKED_PLUGINS:-}
-    volumes:
-      - /tmp/munin-node:/data
-    ports:
-      - ${MUNIN_LISTEN:-127.0.0.1:4949}:4949
-    env_file:
-      - ${MUNIN_ENV_FILE:-.env}
+  # munin-node:
+  #   profiles: [ "production" ]
+  #   container_name: virail-env-server.munin-node
+  #   image: darioguarascio/munin-node:latest
+  #   privileged: true
+  #   restart: "always"
+  #   environment:
+  #     MUNIN_ALLOW: ${MUNIN_ALLOW:-0.0.0.0/0}
+  #     MUNIN_ENABLED_PLUGINS: ${MUNIN_ENABLED_PLUGINS:-traffic cpu df netstat system* load memory uptime}
+  #     MUNIN_LINKED_PLUGINS: ${MUNIN_LINKED_PLUGINS:-}
+  #   volumes:
+  #     - /tmp/munin-node:/data
+  #   ports:
+  #     - ${MUNIN_LISTEN:-127.0.0.1:4949}:4949
+  #   env_file:
+  #     - ${MUNIN_ENV_FILE:-.env}
